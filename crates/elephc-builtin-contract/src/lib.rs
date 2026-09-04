@@ -23,6 +23,7 @@ mod catalog_data;
 #[cfg(feature = "curl")]
 mod catalog_curl;
 mod catalog_surfaces;
+mod core_functions;
 mod eval_profile;
 mod id;
 mod module;
@@ -43,6 +44,7 @@ pub use eval_profile::{
 pub use class_spec::{ClassContract, ClassKind, ClassRoute};
 pub use constant_spec::{ConstType, ConstValue, ConstantContract, ConstantRoute};
 pub use id::BuiltinId;
+pub use core_functions::CORE_FUNCTION_NAMES;
 pub use module::PhpModule;
 pub use php_version::PhpVersion;
 pub use registry::{contracts, lookup, lookup_id};

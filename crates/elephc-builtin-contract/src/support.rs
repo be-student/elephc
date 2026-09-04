@@ -33,6 +33,8 @@ pub enum BackendImplementation {
     LanguageConstruct,
     /// Dedicated syntax node rather than an ordinary function call.
     DedicatedSyntax,
+    /// Compiler pass that rewrites a call using its enclosing lexical function frame.
+    CompilerTransform,
     /// Injected elephc-PHP prelude backed by internal compiler builtins.
     Prelude,
     /// Synthetic declaration the type checker injects and runtime metadata materializes
@@ -54,8 +56,6 @@ pub enum UnsupportedReason {
     InternalCompilerSurface,
     /// PHP-visible AOT implementation whose Magician implementation has not landed.
     EvalImplementationPending,
-    /// Reflection behavior currently exists only for eval-declared/runtime objects.
-    EvalOnlyReflection,
 }
 
 /// Expected support for one contract/backend pair.
@@ -127,8 +127,8 @@ pub fn backend_support(contract: &BuiltinContract, backend: BuiltinBackend) -> B
 
 /// Returns the expected compiler route for one shared contract.
 pub fn aot_support(contract: &BuiltinContract) -> BackendSupport {
-    if is_eval_only_reflection(contract.id) {
-        return BackendSupport::Unsupported(UnsupportedReason::EvalOnlyReflection);
+    if matches!(contract.name, "func_get_arg" | "func_get_args" | "func_num_args") {
+        return BackendSupport::Implemented(BackendImplementation::CompilerTransform);
     }
     let implementation = match contract.kind {
         BuiltinKind::Function => BackendImplementation::Registry,
@@ -293,17 +293,6 @@ pub fn eval_constant_support(constant: &ConstantContract) -> BackendSupport {
 /// class audit; every name here fails `class_exists()` inside `eval()` today.
 const EVAL_CLASS_IMPLEMENTATION_PENDING: &[&str] = &[];
 
-/// Returns whether a function contract is intentionally available only in Magician.
-fn is_eval_only_reflection(id: BuiltinId) -> bool {
-    [
-        "get_called_class",
-        "get_class_methods",
-        "get_class_vars",
-    ]
-    .into_iter()
-    .any(|name| id == BuiltinId::from_canonical_name(name))
-}
-
 /// PHP-visible AOT contracts that do not yet have a Magician implementation binding.
 const EVAL_IMPLEMENTATION_PENDING: &[&str] = &[
     "array_all",
@@ -329,8 +318,6 @@ const EVAL_IMPLEMENTATION_PENDING: &[&str] = &[
     "join",
     "octdec",
     "serialize",
-    "strncasecmp",
-    "strncmp",
     "substr_count",
     "unserialize",
     "zval_free",
@@ -352,7 +339,6 @@ mod tests {
         let mut eval_pending = 0;
         let mut aot_registry = 0;
         let mut aot_external = 0;
-        let mut aot_unsupported = 0;
 
         for contract in contracts() {
             match eval_support(contract) {
@@ -372,9 +358,6 @@ mod tests {
                     aot_registry += 1;
                 }
                 BackendSupport::Implemented(_) => aot_external += 1,
-                BackendSupport::Unsupported(UnsupportedReason::EvalOnlyReflection) => {
-                    aot_unsupported += 1;
-                }
                 other => panic!("unexpected AOT support for {}: {other:?}", contract.name),
             }
         }
@@ -382,22 +365,21 @@ mod tests {
         // The thirty-four prelude-provided `curl_*` contracts are published only
         // with the `curl` feature; see `crate::catalog_curl`'s module doc.
         let curl_surface = if cfg!(feature = "curl") { 34 } else { 0 };
-        assert_eq!(eval_registry, 484 + curl_surface);
+        assert_eq!(eval_registry, 512 + curl_surface);
         // 82 compiler-internal registry helpers plus the 17 `_`-prefixed helper functions the
         // image prelude declares for its own use.
         assert_eq!(eval_internal, 99);
-        // 31 registry builtins awaiting eval homes, plus the 326 PHP-visible prelude-provided
+        // 28 registry builtins awaiting eval homes, plus the 326 PHP-visible prelude-provided
         // and name-resolver-rewritten functions eval does not reach (see `eval_support`).
-        assert_eq!(eval_pending, 357);
+        assert_eq!(eval_pending, 354);
         // Main's BCMath registry adds fourteen AOT contracts; this branch also
         // promotes get_object_vars from an external surface into the registry and
         // adds the ten iconv contracts and forty-three internal `__elephc_curl_*`
         // entry points.
-        assert_eq!(aot_registry, 584);
-        // Ten constructs/dedicated-syntax/hash surfaces, the 343 prelude-provided and
-        // name-resolver-rewritten contracts, and the curl prelude when published.
-        assert_eq!(aot_external, 353 + curl_surface);
-        assert_eq!(aot_unsupported, 3);
+        assert_eq!(aot_registry, 610);
+        // Compiler transforms, constructs, dedicated syntax, preludes, and
+        // name-resolver rewrites remain outside the ordinary AOT registry.
+        assert_eq!(aot_external, 355 + curl_surface);
     }
 
     /// Verifies representative exceptional routes are attached to their contracts.
@@ -444,8 +426,8 @@ mod tests {
         let curl_surface = if cfg!(feature = "curl") { 34 } else { 0 };
         assert_eq!(shared_runtime, 19);
         assert_eq!(hybrid_adapter, 2);
-        assert_eq!(interpreter_adapter, 463 + curl_surface);
-        assert_eq!(unsupported, 456);
+        assert_eq!(interpreter_adapter, 491 + curl_surface);
+        assert_eq!(unsupported, 453);
         assert_eq!(
             eval_execution(lookup("strval").expect("strval contract")),
             Some(EvalExecution::Adapter {
