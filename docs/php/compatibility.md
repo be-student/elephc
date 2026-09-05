@@ -10,7 +10,7 @@ sidebar:
 
 Baseline: **PHP 8.5.10** (CLI snapshot of 2026-09-04, 68 extensions, 2169 functions, 329 classes, 3180 constants).
 
-Overall coverage: functions **789 / 2169** (36%), classes **138 / 329** (42%), constants **1065 / 3180** (33%).
+Overall coverage: functions **817 / 2169** (38%), classes **138 / 329** (42%), constants **1065 / 3180** (33%).
 
 ## Coverage by PHP module
 
@@ -21,7 +21,7 @@ Each cell counts the PHP-visible symbols a compiled elephc program has, against 
 | [`bcmath`](./bcmath.md#functions) | 14 / 14 · 100% | 0 / 1 · 0% | — |
 | `bz2` | 0 / 10 · 0% | — | — |
 | [`calendar`](./calendar.md#functions) | 18 / 18 · 100% | — | 21 / 21 · 100% |
-| `core` | 29 / 62 · 47% | 20 / 40 · 50% | 33 / 89 · 37% |
+| `core` | 57 / 62 · 92% | 20 / 40 · 50% | 33 / 89 · 37% |
 | `ctype` | 4 / 11 · 36% | — | — |
 | [`curl`](./curl.md#functions) | 34 / 35 · 97% | 6 / 6 · 100% | 689 / 689 · 100% |
 | [`date`](./datetime.md#functions) | 48 / 48 · 100% | 15 / 15 · 100% | 3 / 17 · 18% |
@@ -87,7 +87,6 @@ Each cell counts the PHP-visible symbols a compiled elephc program has, against 
 
 The counts above are what a compiled program has. Code run through `eval()` sees a different set in these modules (compiled / eval()):
 
-- `core` functions: 29 / 28
 - `core` constants: 33 / 30
 - `exif` functions: 4 / 0
 - `exif` constants: 1 / 0
@@ -100,8 +99,6 @@ The counts above are what a compiled program has. Code run through `eval()` sees
 - `standard` functions: 381 / 341
 - `standard` constants: 155 / 134
 - `zend opcache` functions: 8 / 0
-
-3 symbol(s) exist only inside `eval()` and are not counted in the table: `get_called_class()`, `get_class_methods()`, `get_class_vars()`.
 
 The remaining 2 baseline extensions expose no functions, classes, or constants of their own, so they have no row above: `lexbor`, `mysqlnd`.
 

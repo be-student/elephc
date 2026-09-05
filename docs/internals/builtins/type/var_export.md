@@ -1,11 +1,11 @@
 ---
-title: "var_export() — internals"
+title: "var_export() - internals"
 description: "Compiler internals for var_export(): lowering path, type checks, and runtime helpers."
 sidebar:
-  order: 845
+  order: 871
 ---
 
-## `var_export()` — internals
+## `var_export()` - internals
 
 ## Where it lives
 
